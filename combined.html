@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>即刻 - 时间记录应用</title>
+  <style>
+    /* 全局样式 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #f5f5f5;
+      color: #000000;
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      max-width: 1240px;
+      margin: 0 auto;
+      background-color: #f5f5f5;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .page-container {
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .page-container.no-shadow {
+      box-shadow: none;
+    }
+
+    .page-container.date-picker-page {
+      justify-content: flex-end;
+    }
+
+    /* 头部样式 */
+    .header {
+      padding: 24px 20px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #f0f0f0;
+      position: relative;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    /* 日期显示 */
+    .date-display {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333333;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* 日期选择器 */
+    .date-picker-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 2000;
+      display: none;
+    }
+
+    .date-picker {
+      background-color: #000000;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 20px;
+      width: 100%;
+      max-width: 600px;
+      color: #ffffff;
+    }
+
+    .date-picker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .date-picker-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .date-picker-buttons {
+      display: flex;
+      gap: 16px;
+    }
+
+    .date-picker-btn {
+      padding: 8px 16px;
+      border: 1px solid #ffffff;
+      border-radius: 8px;
+      background-color: transparent;
+      color: #ffffff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .date-picker-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .date-picker-btn.confirm {
+      background-color: #ffffff;
+      color: #000000;
+    }
+
+    .date-picker-btn.confirm:hover {
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .date-picker-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ffffff;
+      border-radius: 8px;
+      background-color: transparent;
+      color: #ffffff;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    .date-picker-input::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+    }
+
+    /* 内容容器 */
+    .content-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* 页面标题 */
+    .page-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333333;
+      margin: 20px 20px 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    /* 首页样式 */
+    .home-section {
+      width: 100%;
+      padding: 0 20px 32px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    /* 状态卡片 */
+    .status-card {
+      width: 100%;
+      max-width: 300px;
+      padding: 24px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 40px;
+      border: 1px solid #f0f0f0;
+    }
+
+    .status-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .status-text {
+      font-size: 20px;
+      font-weight: 500;
+      color: #000000;
+    }
+
+    /* 状态输入 */
+    .status-input-container {
+      width: 100%;
+      max-width: 300px;
+      display: flex;
+      margin-bottom: 40px;
+      gap: 12px;
+    }
+
+    .status-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+      background-color: #f9f9f9;
+    }
+
+    .status-input:focus {
+      border-color: #000000;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+      background-color: #ffffff;
+    }
+
+    /* 计时器 */
+    .timer {
+      font-size: 48px;
+      font-weight: 300;
+      color: #000000;
+      margin-bottom: 60px;
+      font-family: 'Courier New', Courier, monospace;
+      letter-spacing: 2px;
+    }
+
+    /* 按钮容器 */
+    .button-container {
+      display: flex;
+      gap: 40px;
+    }
+
+    /* 状态切换按钮 */
+    .status-change-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background-color: #333333;
+      border: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .status-change-btn:hover {
+      background-color: #444444;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .status-change-btn.pressed {
+      transform: scale(0.95);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 状态结束按钮容器 */
+    .status-end-btn-container {
+      position: relative;
+    }
+
+    /* 状态结束按钮 */
+    .status-end-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background-color: #f0f0f0;
+      border: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      z-index: 1;
+    }
+
+    .status-end-btn:hover {
+      background-color: #e0e0e0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .status-end-btn.pressed {
+      transform: scale(0.95);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 长按圆环 */
+    .long-press-circle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      transition: all 0.3s ease;
+    }
+
+    .progress-circle {
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    /* 统计页样式 */
+    .statistics-section {
+      width: 100%;
+      padding: 0 20px 32px;
+    }
+
+    /* 时间范围选择器 */
+    .time-range-selector {
+      position: relative;
+      margin-bottom: 24px;
+      text-align: right;
+    }
+
+    .time-range-btn {
+      padding: 6px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 20px;
+      background-color: #ffffff;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #666666;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .time-range-btn:hover {
+      border-color: #000000;
+      color: #000000;
+      background-color: #f5f5f5;
+    }
+
+    .time-range-btn.active {
+      background-color: #000000;
+      color: #ffffff;
+      border-color: #000000;
+    }
+
+    /* 下拉菜单 */
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border: 1px solid #f0f0f0;
+      z-index: 1000;
+      min-width: 120px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .dropdown-item {
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333333;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .dropdown-item:hover {
+      background-color: #f5f5f5;
+    }
+
+    .dropdown-item.active {
+      background-color: #f0f0f0;
+      color: #000000;
+      font-weight: 600;
+    }
+
+    /* 统计内容 */
+    .statistics-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 统计卡片 */
+    .statistics-card {
+      background-color: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      border: 1px solid #f0f0f0;
+    }
+
+    .statistics-card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .statistics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .status-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    .time-info {
+      display: flex;
+      gap: 16px;
+      font-size: 14px;
+      color: #666666;
+    }
+
+    .total-time {
+      font-weight: 500;
+      color: #333333;
+    }
+
+    .percentage {
+      color: #999999;
+    }
+
+    /* 进度条 */
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background-color: #f0f0f0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background-color: #000000;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 480px) {
+      .header {
+        padding: 20px 16px 12px;
+      }
+
+      .logo {
+        font-size: 20px;
+      }
+
+      .date-display {
+        font-size: 12px;
+      }
+
+      .main-content {
+        padding: 0 16px;
+      }
+
+      .status-card {
+        padding: 20px;
+        margin-bottom: 32px;
+      }
+
+      .status-text {
+        font-size: 18px;
+      }
+
+      .timer {
+        font-size: 40px;
+        margin-bottom: 48px;
+      }
+
+      .button-container {
+        gap: 32px;
+      }
+
+      .status-change-btn,
+      .status-end-btn {
+        width: 56px;
+        height: 56px;
+      }
+
+      .long-press-circle {
+        width: 56px;
+        height: 56px;
+      }
+
+      .statistics-content {
+        padding: 0;
+      }
+
+      .statistics-card {
+        padding: 16px;
+      }
+
+      .status-name {
+        font-size: 16px;
+      }
+
+      .time-info {
+        gap: 12px;
+        font-size: 13px;
+      }
+
+      .page-title {
+        font-size: 16px;
+        margin: 16px 16px 12px;
+      }
+
+      .home-section,
+      .statistics-section {
+        padding: 0 16px 24px;
+      }
+    }
+
+    /* 动画效果 */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .home-section,
+    .statistics-section {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    /* 导航栏 */
+    .nav-bar {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 16px 0;
+      border-top: 1px solid #f0f0f0;
+      background-color: #ffffff;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 8px;
+    }
+
+    .nav-item:hover {
+      background-color: #f9f9f9;
+    }
+
+    .nav-item.active {
+      color: #000000;
+      font-weight: 600;
+    }
+
+    .nav-item span {
+      font-size: 14px;
+    }
+
+    /* 滚动条样式 */
+    .content-container::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .content-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 2px;
+    }
+
+    .content-container::-webkit-scrollbar-thumb {
+      background: #e0e0e0;
+      border-radius: 2px;
+    }
+
+    .content-container::-webkit-scrollbar-thumb:hover {
+      background: #d0d0d0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 首页容器 -->
+    <div class="page-container no-shadow">
+      <!-- 头部 -->
+      <div class="header">
+        <h1 class="logo">即刻</h1>
+      </div>
+
+      <!-- 内容容器 -->
+      <div class="content-container">
+        <!-- 首页部分 -->
+        <div class="home-section">
+          <h2 class="page-title">时间记录</h2>
+          <div class="main-content">
+            <div class="status-card" id="statusCard">
+              <span class="status-text" id="statusText">工作</span>
+            </div>
+
+            <div class="timer" id="timer">00:00:00</div>
+
+            <div class="button-container">
+              <button class="status-change-btn" id="statusChangeBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 5V19L19 12L8 5Z" fill="white"/>
+                </svg>
+              </button>
+              <div class="status-end-btn-container">
+                <button class="status-end-btn" id="statusEndBtn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="6" y="6" width="12" height="12" fill="#000000"/>
+                  </svg>
+                </button>
+                <svg class="long-press-circle" id="longPressCircle" width="64" height="64" viewBox="0 0 64 64" style="display: none;">
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="30"
+                    fill="none"
+                    stroke="#e0e0e0"
+                    stroke-width="2"
+                  />
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="30"
+                    fill="none"
+                    stroke="#000000"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-dasharray="188.5"
+                    stroke-dashoffset="188.5"
+                    transform="rotate(-90 32 32)"
+                    class="progress-circle"
+                    id="progressCircle"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 导航栏 -->
+      <div class="nav-bar">
+        <div class="nav-item active">
+          <span>首页</span>
+        </div>
+        <div class="nav-item">
+          <span>统计</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 统计页容器 -->
+    <div class="page-container no-shadow">
+      <!-- 头部 -->
+      <div class="header">
+        <h1 class="logo">即刻</h1>
+        <div class="date-display" id="dateDisplay"></div>
+        <div class="time-range-selector" id="timeRangeSelector">
+          <button class="time-range-btn active" id="timeRangeBtn">
+            当天
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L1 4H11L6 9Z" fill="currentColor"/>
+            </svg>
+          </button>
+          <div class="dropdown-menu" id="dropdownMenu">
+            <button class="dropdown-item active" data-range="today">
+              当天
+            </button>
+            <button class="dropdown-item" data-range="threeDays">
+              近三天
+            </button>
+            <button class="dropdown-item" data-range="sevenDays">
+              近七天
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 内容容器 -->
+      <div class="content-container">
+        <!-- 统计部分 -->
+        <div class="statistics-section">
+          <h2 class="page-title">时间统计</h2>
+
+          <div class="statistics-content" id="statisticsContent">
+            <div class="statistics-card">
+              <div class="statistics-header">
+                <span class="status-name">工作</span>
+                <div class="time-info">
+                  <span class="total-time">4.5h</span>
+                  <span class="percentage">37.5%</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: 37.5%"></div>
+              </div>
+            </div>
+            <div class="statistics-card">
+              <div class="statistics-header">
+                <span class="status-name">学习</span>
+                <div class="time-info">
+                  <span class="total-time">2.5h</span>
+                  <span class="percentage">20.8%</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: 20.8%"></div>
+              </div>
+            </div>
+            <div class="statistics-card">
+              <div class="statistics-header">
+                <span class="status-name">娱乐</span>
+                <div class="time-info">
+                  <span class="total-time">3.0h</span>
+                  <span class="percentage">25.0%</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: 25%"></div>
+              </div>
+            </div>
+            <div class="statistics-card">
+              <div class="statistics-header">
+                <span class="status-name">休息</span>
+                <div class="time-info">
+                  <span class="total-time">2.0h</span>
+                  <span class="percentage">16.7%</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: 16.7%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 导航栏 -->
+      <div class="nav-bar">
+        <div class="nav-item">
+          <span>首页</span>
+        </div>
+        <div class="nav-item active">
+          <span>统计</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 日期选择器界面 -->
+    <div class="page-container" style="position: relative;">
+      <!-- 头部 -->
+      <div class="header">
+        <h1 class="logo">即刻</h1>
+        <div class="date-display">2026-03-01</div>
+        <div class="time-range-selector">
+          <button class="time-range-btn active">
+            当天
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L1 4H11L6 9Z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 内容容器 -->
+      <div class="content-container">
+        <!-- 统计部分 -->
+        <div class="statistics-section">
+          <h2 class="page-title">时间统计</h2>
+
+          <div class="statistics-content">
+            <div class="statistics-card">
+              <div class="statistics-header">
+                <span class="status-name">工作</span>
+                <div class="time-info">
+                  <span class="total-time">4.5h</span>
+                  <span class="percentage">37.5%</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: 37.5%"></div>
+              </div>
+            </div>
+            <div class="statistics-card">
+              <div class="statistics-header">
+                <span class="status-name">学习</span>
+                <div class="time-info">
+                  <span class="total-time">2.5h</span>
+                  <span class="percentage">20.8%</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: 20.8%"></div>
+              </div>
+            </div>
+            <div class="statistics-card">
+              <div class="statistics-header">
+                <span class="status-name">娱乐</span>
+                <div class="time-info">
+                  <span class="total-time">3.0h</span>
+                  <span class="percentage">25.0%</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: 25%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 日期选择器 -->
+      <div class="date-picker-overlay" style="display: flex; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); justify-content: center; align-items: center; z-index: 1000;">
+        <div class="date-picker" style="background-color: #ffffff; border-radius: 12px; padding: 24px; width: 80%; max-width: 300px; color: #000000;">
+          <div class="date-picker-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+            <div class="date-picker-row">
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0;">2025</div>
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0;">2</div>
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0;">31</div>
+            </div>
+            <div class="date-picker-row">
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0; font-weight: 600;">2026</div>
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0; font-weight: 600;">3</div>
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0; font-weight: 600;">01</div>
+            </div>
+            <div class="date-picker-row">
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0;">2027</div>
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0;">4</div>
+              <div class="date-picker-cell" style="padding: 8px; text-align: center; border-bottom: 1px solid #e0e0e0;">02</div>
+            </div>
+          </div>
+          <div class="date-picker-buttons" style="display: flex; justify-content: flex-end; gap: 16px;">
+            <button class="date-picker-btn" style="padding: 8px 16px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: transparent; color: #000000; font-size: 14px; cursor: pointer; transition: all 0.3s ease;">取消</button>
+            <button class="date-picker-btn confirm" style="padding: 8px 16px; border: 1px solid #000000; border-radius: 8px; background-color: #000000; color: #ffffff; font-size: 14px; cursor: pointer; transition: all 0.3s ease;">确定</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 导航栏 -->
+      <div class="nav-bar">
+        <div class="nav-item">
+          <span>首页</span>
+        </div>
+        <div class="nav-item active">
+          <span>统计</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下拉菜单界面 -->
+    <div class="page-container no-shadow">
+      <!-- 头部 -->
+      <div class="header">
+        <h1 class="logo">即刻</h1>
+        <div class="date-display">2026-03-01</div>
+        <div class="time-range-selector">
+          <button class="time-range-btn active">
+            当天
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L1 4H11L6 9Z" fill="currentColor"/>
+            </svg>
+          </button>
+          <div class="dropdown-menu" style="display: block;">
+            <button class="dropdown-item active">
+              当天
+            </button>
+            <button class="dropdown-item">
+              近三天
+            </button>
+            <button class="dropdown-item">
+              近七天
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 内容容器 -->
+      <div class="content-container">
+        <!-- 统计部分 -->
+        <div class="statistics-section">
+          <h2 class="page-title">时间统计</h2>
+
+          <div class="statistics-content">
+            <div class="statistics-card">
+              <div class="statistics-header">
+                <span class="status-name">工作</span>
+                <div class="time-info">
+                  <span class="total-time">4.5h</span>
+                  <span class="percentage">37.5%</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: 37.5%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 导航栏 -->
+      <div class="nav-bar">
+        <div class="nav-item">
+          <span>首页</span>
+        </div>
+        <div class="nav-item active">
+          <span>统计</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 首页功能
+    let status = '工作';
+    let time = 0;
+    let isRunning = false;
+    let isLongPressing = false;
+    let longPressProgress = 0;
+    let intervalId = null;
+    let longPressTimerId = null;
+    let progressIntervalId = null;
+
+    // 统计页功能
+    let timeRange = 'today';
+    let showDropdown = false;
+    let currentDate = new Date();
+
+    // 元素
+    const statusCard = document.getElementById('statusCard');
+    const statusText = document.getElementById('statusText');
+    const timer = document.getElementById('timer');
+    const statusChangeBtn = document.getElementById('statusChangeBtn');
+    const statusEndBtn = document.getElementById('statusEndBtn');
+    const longPressCircle = document.getElementById('longPressCircle');
+    const progressCircle = document.getElementById('progressCircle');
+    const timeRangeBtn = document.getElementById('timeRangeBtn');
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+    const dateDisplay = document.getElementById('dateDisplay');
+    const datePickerOverlay = document.getElementById('datePickerOverlay');
+    const datePickerInput = document.getElementById('datePickerInput');
+    const datePickerCancel = document.getElementById('datePickerCancel');
+    const datePickerConfirm = document.getElementById('datePickerConfirm');
+
+    // 格式化时间
+    function formatTime(seconds) {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // 格式化日期
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // 更新日期显示
+    function updateDateDisplay() {
+      dateDisplay.textContent = formatDate(currentDate);
+      dateDisplay.style.display = 'block';
+    }
+
+    // 首页功能
+    statusCard.addEventListener('click', function() {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = status;
+      input.className = 'status-input';
+      input.autoFocus = true;
+
+      const container = document.createElement('div');
+      container.className = 'status-input-container';
+      container.appendChild(input);
+
+      statusCard.replaceWith(container);
+
+      input.addEventListener('blur', function() {
+        status = input.value || '工作';
+        statusText.textContent = status;
+        container.replaceWith(statusCard);
+        isRunning = true;
+        startTimer();
+      });
+
+      input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          input.blur();
+        }
+      });
+    });
+
+    // 开始计时器
+    function startTimer() {
+      if (!isRunning) {
+        isRunning = true;
+        intervalId = setInterval(function() {
+          time++;
+          timer.textContent = formatTime(time);
+        }, 1000);
+      }
+    }
+
+    // 停止计时器
+    function stopTimer() {
+      isRunning = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    }
+
+    // 长按开始
+    function handleStatusEndStart() {
+      isLongPressing = true;
+      longPressProgress = 0;
+      longPressCircle.style.display = 'block';
+      
+      // 启动进度条动画，1秒完成
+      progressIntervalId = setInterval(function() {
+        longPressProgress += (100 / 10); // 1秒 = 10 * 100ms
+        if (longPressProgress >= 100) {
+          longPressProgress = 100;
+          clearInterval(progressIntervalId);
+        }
+        const offset = 188.5 - (longPressProgress / 100) * 188.5;
+        progressCircle.style.strokeDashoffset = offset;
+      }, 100);
+
+      // 1秒后执行结束操作
+      longPressTimerId = setTimeout(handleStatusEnd, 1000);
+    }
+
+    // 长按取消
+    function handleStatusEndCancel() {
+      isLongPressing = false;
+      longPressProgress = 0;
+      longPressCircle.style.display = 'none';
+      progressCircle.style.strokeDashoffset = 188.5;
+      if (longPressTimerId) {
+        clearTimeout(longPressTimerId);
+      }
+      if (progressIntervalId) {
+        clearInterval(progressIntervalId);
+      }
+    }
+
+    // 长按结束
+    function handleStatusEnd() {
+      stopTimer();
+      time = 0;
+      timer.textContent = formatTime(time);
+      isLongPressing = false;
+      longPressProgress = 0;
+      longPressCircle.style.display = 'none';
+      progressCircle.style.strokeDashoffset = 188.5;
+      if (progressIntervalId) {
+        clearInterval(progressIntervalId);
+      }
+    }
+
+    // 状态切换按钮
+    statusChangeBtn.addEventListener('click', function() {
+      startTimer();
+    });
+
+    // 状态结束按钮
+    statusEndBtn.addEventListener('mousedown', handleStatusEndStart);
+    statusEndBtn.addEventListener('mouseup', handleStatusEndCancel);
+    statusEndBtn.addEventListener('mouseleave', handleStatusEndCancel);
+    statusEndBtn.addEventListener('touchstart', handleStatusEndStart);
+    statusEndBtn.addEventListener('touchend', handleStatusEndCancel);
+
+    // 时间范围选择
+    timeRangeBtn.addEventListener('click', function() {
+      showDropdown = !showDropdown;
+      dropdownMenu.style.display = showDropdown ? 'block' : 'none';
+    });
+
+    dropdownItems.forEach(item => {
+      item.addEventListener('click', function() {
+        const range = this.getAttribute('data-range');
+        timeRange = range;
+        
+        // 更新按钮文本
+        let text = '当天';
+        if (range === 'threeDays') text = '近三天';
+        if (range === 'sevenDays') text = '近七天';
+        timeRangeBtn.innerHTML = `${text}<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L1 4H11L6 9Z" fill="currentColor"/></svg>`;
+        
+        // 更新active状态
+        dropdownItems.forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+        
+        // 关闭下拉菜单
+        showDropdown = false;
+        dropdownMenu.style.display = 'none';
+      });
+    });
+
+    // 点击外部关闭下拉菜单
+    document.addEventListener('mousedown', function(e) {
+      if (!document.getElementById('timeRangeSelector').contains(e.target)) {
+        showDropdown = false;
+        dropdownMenu.style.display = 'none';
+      }
+    });
+
+    // 日期显示点击事件
+    dateDisplay.addEventListener('click', function() {
+      // 设置日期选择器的当前值
+      datePickerInput.value = formatDate(currentDate);
+      // 显示日期选择器
+      datePickerOverlay.style.display = 'flex';
+    });
+
+    // 日期选择器取消按钮
+    datePickerCancel.addEventListener('click', function() {
+      datePickerOverlay.style.display = 'none';
+    });
+
+    // 日期选择器确认按钮
+    datePickerConfirm.addEventListener('click', function() {
+      const selectedDate = new Date(datePickerInput.value);
+      if (!isNaN(selectedDate)) {
+        currentDate = selectedDate;
+        updateDateDisplay();
+      }
+      datePickerOverlay.style.display = 'none';
+    });
+
+    // 点击日期选择器外部关闭
+    datePickerOverlay.addEventListener('click', function(e) {
+      if (e.target === datePickerOverlay) {
+        datePickerOverlay.style.display = 'none';
+      }
+    });
+
+    // 初始化
+    updateDateDisplay();
+  </script>
+
+  <!-- 日期选择器 -->
+  <div class="date-picker-overlay" id="datePickerOverlay">
+    <div class="date-picker">
+      <div class="date-picker-header">
+        <h3 class="date-picker-title">选择日期</h3>
+        <div class="date-picker-buttons">
+          <button class="date-picker-btn" id="datePickerCancel">取消</button>
+          <button class="date-picker-btn confirm" id="datePickerConfirm">确定</button>
+        </div>
+      </div>
+      <input type="date" class="date-picker-input" id="datePickerInput">
+    </div>
+  </div>
+</body>
+</html>
